@@ -16,6 +16,11 @@ const nextConfig: NextConfig = {
         pathname: "/storage/**",
       },
       {
+        // placeholder images dari seeder (picsum.photos)
+        protocol: "https",
+        hostname: "picsum.photos",
+      },
+      {
         protocol: "http",
         hostname: "127.0.0.1",
         port: "8000",
