@@ -14,7 +14,7 @@ export default function DestinationGallery({ images, name }: DestinationGalleryP
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
   // Filter gambar null sesuai IMAGE_GUIDE rule #4
-  const validImages = images.filter((img) => img.image_url !== null)
+  const validImages = images.filter((img): img is typeof img & { image_url: string } => img.image_url !== null)
   // Normalize http → https (Railway backend kadang return http)
   const normalizeUrl = (url: string) => url.replace(/^http:\/\//, 'https://')
 
