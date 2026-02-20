@@ -134,30 +134,7 @@ export const uploadFetch = async (endpoint: string, formData: FormData) => {
 
 ## 5. Konfigurasi next.config.js
 
-Tambahkan konfigurasi berikut untuk mengizinkan gambar dari Railway:
-
-```javascript
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'wisatakerinci-backend-production.up.railway.app',
-        pathname: '/storage/**',
-      },
-      {
-        // untuk development lokal
-        protocol: 'http',
-        hostname: '127.0.0.1',
-        pathname: '/storage/**',
-      },
-    ],
-  },
-}
-
-module.exports = nextConfig
-```
+Lihat section **7 (Cara Kerja Gambar)** untuk konfigurasi `remotePatterns` yang lengkap dan sudah mencakup semua sumber gambar (Railway, Unsplash, Picsum).
 
 ---
 
@@ -196,27 +173,98 @@ Setelah deploy selesai:
 
 ---
 
-## 7. Konfigurasi Image URL di Frontend
+## 7. Cara Kerja Gambar (Image System)
 
-`image_url` dan `avatar_url` dari backend sudah berupa **URL lengkap**.  
-Di production, URL tersebut dalam format:
-```
-https://wisatakerinci-backend-production.up.railway.app/storage/destinations/filename.jpg
-https://wisatakerinci-backend-production.up.railway.app/storage/avatars/filename.jpg
+### Bagaimana Gambar Disimpan di Backend
+
+Backend menyimpan gambar dengan **3 jenis path** di database:
+
+| Tipe | Contoh `image_path` di DB | Hasil `image_url` di API |
+|------|--------------------------|--------------------------|
+| URL eksternal | `https://images.unsplash.com/...` | Langsung dipakai as-is |
+| Public folder (git) | `/images/destinations/danaukerinci.jpg` | `https://wisatakerinci-backend-production.up.railway.app/images/destinations/danaukerinci.jpg` |
+| Storage (upload user) | `destinations/foto-user.jpg` | `https://wisatakerinci-backend-production.up.railway.app/storage/destinations/foto-user.jpg` |
+
+> **Penting:** API selalu mengembalikan `image_url` sebagai **URL lengkap** — frontend **tidak perlu** menyambung base URL apapun, langsung pakai nilai `image_url` sebagai `src`.
+
+### Contoh Response `image_url`
+```json
+{
+  "id": 1,
+  "image_url": "https://wisatakerinci-backend-production.up.railway.app/images/destinations/danaukerinci.jpg",
+  "is_primary": true
+}
 ```
 
-Gunakan langsung sebagai `src` di Next.js Image component:
+### Cara Tampilkan Gambar di Next.js
 
 ```tsx
 import Image from 'next/image'
 
-// Pastikan hostname sudah didaftarkan di next.config.js (step 5)
+// image_url sudah berupa URL lengkap, langsung pakai sebagai src
 <Image
   src={destination.images[0]?.image_url}
   alt={destination.name}
-  width={400}
-  height={300}
+  width={800}
+  height={600}
+  className="object-cover"
 />
+```
+
+### Handle Gambar Kosong / Null
+
+```tsx
+const getImageUrl = (images: DestinationImage[]) => {
+  const primary = images.find(img => img.is_primary)
+  return primary?.image_url ?? images[0]?.image_url ?? '/placeholder.jpg'
+}
+
+// Penggunaan:
+<Image src={getImageUrl(destination.images)} alt={destination.name} ... />
+```
+
+### Konfigurasi next.config.js untuk Semua Sumber Gambar
+
+```javascript
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        // Gambar dari Railway (public folder & storage)
+        protocol: 'https',
+        hostname: 'wisatakerinci-backend-production.up.railway.app',
+      },
+      {
+        // Gambar dari Unsplash (dipakai untuk beberapa destinasi)
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        // Fallback placeholder
+        protocol: 'https',
+        hostname: 'picsum.photos',
+      },
+    ],
+  },
+}
+
+module.exports = nextConfig
+```
+
+> **Wajib** tambahkan semua hostname di `remotePatterns`, jika tidak Next.js akan throw error saat render gambar dari domain tersebut.
+
+---
+
+## 7b. Gambar Upload oleh User (Runtime)
+
+Ketika user upload foto via `POST /api/destinations/{id}/photos` atau update avatar, gambar disimpan ke **Railway storage** (ephemeral). Gambar ini akan hilang jika Railway redeploy.
+
+Untuk production yang stabil, gambar upload user sebaiknya disimpan ke layanan eksternal (Cloudinary, S3). Untuk saat ini (demo/portofolio), gambar upload user tetap bisa ditampilkan selama Railway tidak redeploy.
+
+`image_url` untuk upload user format-nya:
+```
+https://wisatakerinci-backend-production.up.railway.app/storage/destinations/namafile.jpg
 ```
 
 ---

@@ -13,10 +13,12 @@ export default function DestinationGallery({ images, name }: DestinationGalleryP
   const [activeIndex, setActiveIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
+  // Filter gambar null sesuai IMAGE_GUIDE rule #4
+  const validImages = images.filter((img) => img.image_url !== null)
   // Normalize http → https (Railway backend kadang return http)
-  const normalizeUrl = (url: string) => url?.replace(/^http:\/\//, 'https://')
+  const normalizeUrl = (url: string) => url.replace(/^http:\/\//, 'https://')
 
-  if (images.length === 0) {
+  if (validImages.length === 0) {
     return (
       <div className="w-full h-80 bg-stone-100 rounded-2xl flex items-center justify-center">
         <svg className="h-14 w-14 text-stone-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -26,10 +28,10 @@ export default function DestinationGallery({ images, name }: DestinationGalleryP
     )
   }
 
-  const active = images[activeIndex]
+  const active = validImages[activeIndex]
 
-  function prev() { setActiveIndex((i) => (i === 0 ? images.length - 1 : i - 1)) }
-  function next() { setActiveIndex((i) => (i === images.length - 1 ? 0 : i + 1)) }
+  function prev() { setActiveIndex((i) => (i === 0 ? validImages.length - 1 : i - 1)) }
+  function next() { setActiveIndex((i) => (i === validImages.length - 1 ? 0 : i + 1)) }
 
   return (
     <div className="space-y-3">
@@ -44,7 +46,7 @@ export default function DestinationGallery({ images, name }: DestinationGalleryP
           sizes="(max-width: 768px) 100vw, 800px"
           priority
         />
-        {images.length > 1 && (
+        {validImages.length > 1 && (
           <>
             <button onClick={(e) => { e.stopPropagation(); prev() }}
               className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-2 transition-colors"
@@ -63,14 +65,14 @@ export default function DestinationGallery({ images, name }: DestinationGalleryP
           </>
         )}
         <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs rounded-full px-2.5 py-1">
-          {activeIndex + 1} / {images.length}
+          {activeIndex + 1} / {validImages.length}
         </div>
       </div>
 
       {/* Thumbnails */}
-      {images.length > 1 && (
+      {validImages.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-          {images.map((img, idx) => (
+          {validImages.map((img, idx) => (
             <button
               key={img.id}
               onClick={() => setActiveIndex(idx)}

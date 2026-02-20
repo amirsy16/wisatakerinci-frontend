@@ -45,7 +45,7 @@ export interface Category {
 // ─── Destination Image ─────────────────────────────────────────────────────────
 export interface DestinationImage {
   id: number
-  image_url: string
+  image_url: string | null  // bisa null — selalu handle sebelum render
   is_primary: boolean
 }
 
