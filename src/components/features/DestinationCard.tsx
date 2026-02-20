@@ -10,15 +10,17 @@ interface DestinationCardProps {
 
 export default function DestinationCard({ destination }: DestinationCardProps) {
   const primaryImage = destination.images.find((img) => img.is_primary) ?? destination.images[0]
+  // Normalize http → https (Railway backend kadang return http)
+  const imageUrl = primaryImage?.image_url?.replace(/^http:\/\//, 'https://')
 
   return (
     <Link href={`/wisata/${destination.slug}`} className="group block">
       <article className="rounded-2xl overflow-hidden bg-white border border-stone-100 shadow-sm hover:shadow-md transition-shadow">
         {/* Image */}
         <div className="relative h-52 bg-stone-100 overflow-hidden">
-          {primaryImage ? (
+          {imageUrl ? (
             <Image
-              src={primaryImage.image_url}
+              src={imageUrl}
               alt={destination.name}
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-105"

@@ -13,6 +13,9 @@ export default function DestinationGallery({ images, name }: DestinationGalleryP
   const [activeIndex, setActiveIndex] = useState(0)
   const [lightboxOpen, setLightboxOpen] = useState(false)
 
+  // Normalize http → https (Railway backend kadang return http)
+  const normalizeUrl = (url: string) => url?.replace(/^http:\/\//, 'https://')
+
   if (images.length === 0) {
     return (
       <div className="w-full h-80 bg-stone-100 rounded-2xl flex items-center justify-center">
@@ -34,7 +37,7 @@ export default function DestinationGallery({ images, name }: DestinationGalleryP
       <div className="relative w-full h-80 md:h-[28rem] rounded-2xl overflow-hidden bg-stone-100 cursor-pointer"
         onClick={() => setLightboxOpen(true)}>
         <Image
-          src={active.image_url}
+          src={normalizeUrl(active.image_url)}
           alt={`${name} - foto ${activeIndex + 1}`}
           fill
           className="object-cover"
@@ -74,7 +77,7 @@ export default function DestinationGallery({ images, name }: DestinationGalleryP
               className={['relative h-16 w-20 shrink-0 rounded-lg overflow-hidden border-2 transition-all',
                 idx === activeIndex ? 'border-emerald-500' : 'border-transparent opacity-60 hover:opacity-100'].join(' ')}
             >
-              <Image src={img.image_url} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" sizes="80px" />
+              <Image src={normalizeUrl(img.image_url)} alt={`Thumbnail ${idx + 1}`} fill className="object-cover" sizes="80px" />
             </button>
           ))}
         </div>
@@ -91,7 +94,7 @@ export default function DestinationGallery({ images, name }: DestinationGalleryP
             </svg>
           </button>
           <div className="relative max-w-4xl w-full max-h-[90vh] aspect-video" onClick={(e) => e.stopPropagation()}>
-            <Image src={active.image_url} alt={`${name} - foto ${activeIndex + 1}`} fill className="object-contain" sizes="100vw" />
+            <Image src={normalizeUrl(active.image_url)} alt={`${name} - foto ${activeIndex + 1}`} fill className="object-contain" sizes="100vw" />
           </div>
         </div>
       )}

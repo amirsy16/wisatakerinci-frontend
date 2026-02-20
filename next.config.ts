@@ -10,6 +10,12 @@ const nextConfig: NextConfig = {
         pathname: "/storage/**",
       },
       {
+        // image_url dari backend Railway kadang pakai http
+        protocol: "http",
+        hostname: "wisatakerinci-backend-production.up.railway.app",
+        pathname: "/storage/**",
+      },
+      {
         protocol: "http",
         hostname: "127.0.0.1",
         port: "8000",
