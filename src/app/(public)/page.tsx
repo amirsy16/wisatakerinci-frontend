@@ -5,14 +5,16 @@ import { getCategories } from '@/services/categories'
 import HomeClient from '@/components/features/HomeClient'
 import HeroSearchTrigger from '@/components/features/HeroSearchTrigger'
 
+export const dynamic = 'force-dynamic'
+
 export default async function HomePage() {
-  const [destinationsRes, categoriesRes] = await Promise.all([
+  const [destinationsRes, categoriesRes] = await Promise.allSettled([
     getDestinations({ per_page: 6, page: 1 }),
     getCategories(),
   ])
 
-  const destinations = destinationsRes.data
-  const categories = categoriesRes.data
+  const destinations = destinationsRes.status === 'fulfilled' ? destinationsRes.value.data : []
+  const categories = categoriesRes.status === 'fulfilled' ? categoriesRes.value.data : []
 
   return (
     <>

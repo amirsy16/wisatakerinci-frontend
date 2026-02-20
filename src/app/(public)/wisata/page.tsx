@@ -28,13 +28,15 @@ export default async function WisataPage({ searchParams }: PageProps) {
   const search = params.search ?? ''
   const category = params.category ?? ''
 
-  const [destinationsRes, categoriesRes] = await Promise.all([
+  const [destinationsRes, categoriesRes] = await Promise.allSettled([
     getDestinations({ search, category, page, per_page }),
     getCategories(),
   ])
 
-  const { data: destinations, meta } = destinationsRes
-  const categories = categoriesRes.data
+  const { data: destinations, meta } = destinationsRes.status === 'fulfilled'
+    ? destinationsRes.value
+    : { data: [], meta: { current_page: 1, last_page: 1, total: 0, per_page: 9, from: 0, to: 0 } }
+  const categories = categoriesRes.status === 'fulfilled' ? categoriesRes.value.data : []
 
   return (
     <div className="bg-stone-50 min-h-screen">
