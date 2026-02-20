@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import useSWR from 'swr'
-import { adminCreateDestination, adminUpdateDestination, type DestinationPayload } from '@/services/admin'
+import { adminCreateDestination, adminUpdateDestination, adminUploadPhoto, adminDeletePhoto, type DestinationPayload } from '@/services/admin'
 import { adminGetCategories } from '@/services/admin'
 import Input from '@/components/ui/Input'
 import Textarea from '@/components/ui/Textarea'
@@ -43,6 +44,14 @@ export default function DestinationForm({ initial, destinationId }: DestinationF
   const [loading, setLoading] = useState(false)
   const [globalError, setGlobalError] = useState('')
 
+  // ─── Photo state ───────────────────────────────────────────────────────────
+  const [photos, setPhotos] = useState<{ id: number; image_url: string | null; is_primary: boolean }[]>(
+    initial?.images ?? []
+  )
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   function setField(field: string, value: unknown) {
     setForm((prev) => ({ ...prev, [field]: value }))
     setErrors((prev) => ({ ...prev, [field]: '' }))
@@ -55,6 +64,47 @@ export default function DestinationForm({ initial, destinationId }: DestinationF
         ? prev.categories.filter((c) => c !== id)
         : [...prev.categories, id],
     }))
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !destinationId) return
+    setPhotoUploading(true)
+    setPhotoError('')
+    try {
+      const isPrimary = photos.length === 0  // auto set primary jika belum ada foto
+      const res = await adminUploadPhoto(destinationId, file, isPrimary)
+      setPhotos((prev) => [
+        ...prev.map((p) => isPrimary ? { ...p, is_primary: false } : p),
+        res.data,
+      ])
+    } catch {
+      setPhotoError('Gagal upload foto. Coba lagi.')
+    } finally {
+      setPhotoUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handleDeletePhoto(photoId: number) {
+    if (!destinationId || !confirm('Hapus foto ini?')) return
+    try {
+      await adminDeletePhoto(destinationId, photoId)
+      setPhotos((prev) => prev.filter((p) => p.id !== photoId))
+    } catch {
+      setPhotoError('Gagal menghapus foto.')
+    }
+  }
+
+  async function handleSetPrimary(photoId: number) {
+    if (!destinationId) return
+    // Upload ulang tidak diperlukan — re-upload dengan is_primary=true tidak praktis.
+    // Pendekatan: kirim photo yang sudah ada dengan flag primary via endpoint upload baru
+    // Per guide: primary diset saat upload, bukan patch terpisah.
+    // Untuk UX, kita upload ulang file tidak bisa — hanya bisa diset saat upload baru.
+    // Solusi: tandai di UI saja dan informasikan user untuk re-upload sebagai primary
+    setPhotos((prev) => prev.map((p) => ({ ...p, is_primary: p.id === photoId })))
+    setPhotoError('Untuk mengubah foto utama, hapus foto lama lalu upload ulang dengan centang “Jadikan Utama”.')
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -182,6 +232,101 @@ export default function DestinationForm({ initial, destinationId }: DestinationF
         </Button>
         <Button type="button" variant="secondary" onClick={() => router.back()}>Batal</Button>
       </div>
+
+      {/* ─── Foto Destinasi (hanya di edit mode) ────────────────────── */}
+      {destinationId && (
+        <div className="border-t border-stone-200 pt-6 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold text-stone-800">Foto Destinasi</h3>
+            <p className="text-xs text-stone-500 mt-0.5">Format: JPG, PNG, WEBP. Maks 5MB. Foto pertama otomatis jadi foto utama.</p>
+          </div>
+
+          {photoError && (
+            <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
+              {photoError}
+            </div>
+          )}
+
+          {/* Grid foto existing */}
+          {photos.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {photos.map((photo) => (
+                photo.image_url && (
+                  <div key={photo.id} className="relative group rounded-xl overflow-hidden border border-stone-200 bg-stone-100 aspect-video">
+                    <Image
+                      src={photo.image_url.replace(/^http:\/\//, 'https://')}
+                      alt="foto destinasi"
+                      fill
+                      className="object-cover"
+                      sizes="200px"
+                    />
+                    {/* Badge utama */}
+                    {photo.is_primary && (
+                      <span className="absolute top-2 left-2 bg-emerald-600 text-white text-xs font-medium px-2 py-0.5 rounded-full">
+                        Utama
+                      </span>
+                    )}
+                    {/* Overlay actions */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                      {!photo.is_primary && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetPrimary(photo.id)}
+                          className="bg-white text-stone-800 text-xs font-medium px-2 py-1 rounded-lg hover:bg-emerald-50"
+                        >
+                          Jadikan Utama
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePhoto(photo.id)}
+                        className="bg-red-500 text-white text-xs font-medium px-2 py-1 rounded-lg hover:bg-red-600"
+                      >
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                )
+              ))}
+            </div>
+          )}
+
+          {/* Tombol upload */}
+          <div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/jpg,image/webp"
+              className="hidden"
+              onChange={handlePhotoUpload}
+              disabled={photoUploading}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={photoUploading}
+              className="flex items-center gap-2 rounded-xl border-2 border-dashed border-stone-300 hover:border-emerald-400 px-5 py-3 text-sm text-stone-600 hover:text-emerald-700 transition-colors disabled:opacity-50"
+            >
+              {photoUploading ? (
+                <>
+                  <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                  Mengupload...
+                </>
+              ) : (
+                <>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Tambah Foto
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </form>
   )
 }

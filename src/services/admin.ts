@@ -37,6 +37,27 @@ export async function adminDeleteDestination(id: number): Promise<void> {
   await apiClient.delete(`/admin/destinations/${id}`)
 }
 
+// ─── Admin Destination Photos ──────────────────────────────────────────────────
+export async function adminUploadPhoto(
+  destinationId: number,
+  file: File,
+  isPrimary = false
+): Promise<ApiResponse<{ id: number; image_url: string; is_primary: boolean }>> {
+  const formData = new FormData()
+  formData.append('photo', file)  // field name: 'photo' per CLOUDINARY_GUIDE
+  formData.append('is_primary', isPrimary ? 'true' : 'false')
+  const { data } = await apiClient.post(
+    `/admin/destinations/${destinationId}/photos`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  )
+  return data
+}
+
+export async function adminDeletePhoto(destinationId: number, photoId: number): Promise<void> {
+  await apiClient.delete(`/admin/destinations/${destinationId}/photos/${photoId}`)
+}
+
 // ─── Admin Categories ──────────────────────────────────────────────────────────
 export interface CategoryWithCount extends Category {
   destinations_count?: number

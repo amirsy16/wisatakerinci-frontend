@@ -25,6 +25,11 @@ const nextConfig: NextConfig = {
         hostname: "picsum.photos",
       },
       {
+        // Cloudinary — penyimpanan foto upload user/admin
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
+      {
         // Development lokal
         protocol: "http",
         hostname: "127.0.0.1",
