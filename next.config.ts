@@ -5,26 +5,30 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
+        // Railway: covers /storage/**, /images/**, semua path
         protocol: "https",
         hostname: "wisatakerinci-backend-production.up.railway.app",
-        pathname: "/storage/**",
       },
       {
-        // image_url dari backend Railway kadang pakai http
+        // Railway via http (backend kadang return http)
         protocol: "http",
         hostname: "wisatakerinci-backend-production.up.railway.app",
-        pathname: "/storage/**",
       },
       {
-        // placeholder images dari seeder (picsum.photos)
+        // Unsplash — dipakai di beberapa data destinasi
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        // Picsum — dipakai seeder sebagai placeholder
         protocol: "https",
         hostname: "picsum.photos",
       },
       {
+        // Development lokal
         protocol: "http",
         hostname: "127.0.0.1",
         port: "8000",
-        pathname: "/storage/**",
       },
     ],
     dangerouslyAllowSVG: true,
